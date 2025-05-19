@@ -1,0 +1,35 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: check-added-large-files  # Prevent giant files
+    -   id: check-merge-conflict      # Check for files with merge conflicts
+    -   id: check-yaml               # Validate YAML files
+    -   id: detect-private-key        # Detect the presence of private keys
+    -   id: end-of-file-fixer        # Ensure files end with a newline
+    -   id: mixed-line-ending        # Ensure consistent line endings
+    -   id: trailing-whitespace      # Remove trailing whitespace
+
+-   repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+    -   id: black
+        language_version: python3
+        args: [--line-length=88]
+
+-   repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+    -   id: isort
+        name: isort (python)
+        args: [--profile=black]
+
+-   repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.11.10
+    hooks:
+    -   id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi, jupyter]
+
+# Note: git-secrets is installed separately via Homebrew and configured at git config level
+# Run 'git secrets --install' and 'git secrets --register-aws' to configure
