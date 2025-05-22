@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Results - {{ base_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Compare Results for {{ base_name }}</h2>
+        <p>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">Back to Home</a>
+            <a href="{{ url_for('view_results', base_name=base_name) }}" class="btn btn-primary btn-sm">View Results</a>
+        </p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Comparison Settings</h5>
+            </div>
+            <div class="card-body">
+                <form id="compare-form">
+                    <div class="mb-3">
+                        <label for="proc1" class="form-label">Processor 1</label>
+                        <select class="form-select" id="proc1" name="proc1">
+                            {% for processor in processors %}
+                            <option value="{{ processor }}" {% if processor == selected_proc1 %}selected{% endif %}>{{ processor|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="proc2" class="form-label">Processor 2</label>
+                        <select class="form-select" id="proc2" name="proc2">
+                            {% for processor in processors %}
+                            <option value="{{ processor }}" {% if processor == selected_proc2 %}selected{% endif %}>{{ processor|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="page" class="form-label">Page</label>
+                        <select class="form-select" id="page" name="page">
+                            {% for p in pages %}
+                            <option value="{{ p }}" {% if p == selected_page %}selected{% endif %}>Page {{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Compare</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="side-by-side-tab" data-bs-toggle="tab" data-bs-target="#side-by-side" type="button" role="tab" aria-controls="side-by-side" aria-selected="true">Side by Side</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="diff-tab" data-bs-toggle="tab" data-bs-target="#diff" type="button" role="tab" aria-controls="diff" aria-selected="false">Diff View</button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="resultTabsContent">
+            <div class="tab-pane fade show active" id="side-by-side" role="tabpanel" aria-labelledby="side-by-side-tab">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title">{{ selected_proc1|capitalize }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="content-panel">
+                                    <pre>{{ content1 }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title">{{ selected_proc2|capitalize }}</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="content-panel">
+                                    <pre>{{ content2 }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="diff" role="tabpanel" aria-labelledby="diff-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title">Differences</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="diff-container">
+                            {{ diff_html|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const compareForm = document.getElementById('compare-form');
+        const proc1Select = document.getElementById('proc1');
+        const proc2Select = document.getElementById('proc2');
+        const pageSelect = document.getElementById('page');
+        
+        // Update page options when processor 1 changes
+        proc1Select.addEventListener('change', function() {
+            const processor = this.value;
+            const baseName = '{{ base_name }}';
+            
+            pageSelect.innerHTML = '<option value="">Loading pages...</option>';
+            
+            fetch(`/api/pages/${baseName}/${processor}`)
+                .then(response => response.json())
+                .then(pages => {
+                    pageSelect.innerHTML = '';
+                    
+                    if (pages.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No pages found';
+                        pageSelect.appendChild(option);
+                    } else {
+                        pages.forEach(page => {
+                            const option = document.createElement('option');
+                            option.value = page;
+                            option.textContent = `Page ${page}`;
+                            pageSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading pages:', error);
+                    pageSelect.innerHTML = '<option value="">Error loading pages</option>';
+                });
+        });
+        
+        // Handle form submission
+        compareForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const proc1 = proc1Select.value;
+            const proc2 = proc2Select.value;
+            const page = pageSelect.value;
+            const baseName = '{{ base_name }}';
+            
+            window.location.href = `/compare/${baseName}?proc1=${proc1}&proc2=${proc2}&page=${page}`;
+        });
+    });
+</script>
+{% endblock %}

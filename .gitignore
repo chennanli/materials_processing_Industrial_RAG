@@ -28,15 +28,34 @@ wheels/
 # Virtual Environment
 venv/
 env/
+.venv/
 docling_OCR/
 
 # Project specific
+# Keep output directory structure but ignore its contents
 output/*
 !output/.gitkeep
-output_from_cloud/
+output_from_cloud/*
+!output_from_cloud/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# Archived and development files
 archieved/
 future_use_pdf/
 suggestions.md
+dialog.md
+
+# PDF and document files (except examples)
+*.pdf
+!examples/*.pdf
+
+# Large data files
+*.png
+*.jpg
+*.jpeg
+*.tiff
+*.bmp
 
 # IDE specific
 .idea/
@@ -47,6 +66,18 @@ suggestions.md
 
 # Logs
 *.log
+*.log.*
+!example.log
+logs/
+*.log.*
+!example.log.*
+docling_*.log
+!docling_example.log
 
 # Local development
 .DS_Store
+.ipynb_checkpoints/
+
+# Temporary files
+tmp*/
+*.tmp

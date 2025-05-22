@@ -1,6 +1,6 @@
-# Docling OCR
+# Document Processing System
 
-A modular document processing system that supports multiple VLM (Vision-Language Model) backends for OCR and document understanding.
+A comprehensive document processing system with a web interface that supports multiple processing engines (Docling, Gemini, LMStudio, Camelot) for OCR, table extraction, and document understanding.
 
 ## Project Structure
 
@@ -9,27 +9,58 @@ Docling_OCR/
 ├── .gitignore              # Git ignore file
 ├── README.md              # This file
 ├── requirements.txt       # Python dependencies
-├── basic.py               # Basic Docling OCR script (direct Docling usage)
-├── gemini_OCR.py         # Google Gemini-based OCR processor
-├── LMstudio.py           # Local LM Studio-based processor
+├── app.py                # Flask web application
+├── document_processor.py # Document processing core
+├── compare_results.py    # Result comparison tool
+├── config.py             # Configuration settings
+├── processors/           # Processor implementations
+│   ├── docling_processor.py
+│   ├── camelot_processor.py
+│   ├── gemini_processor.py
+│   ├── lmstudio_processor.py
+│   └── fallback_processor.py
+├── static/               # Static web assets
+│   ├── style.css         # Custom CSS styles
+│   └── script.js         # Custom JavaScript
+├── templates/            # HTML templates
+│   ├── base.html         # Base template
+│   ├── index.html        # Home page
+│   ├── results.html      # Results page
+│   └── compare.html      # Comparison page
+├── uploads/              # Uploaded documents
 ├── output/               # Output directory for processed files
 │   └── .gitkeep         # Keep the directory in Git
-├── output_from_cloud/    # Output from cloud-based processing
-├── archieved/            # Archived files (not tracked by Git)
-├── future_use_pdf/       # PDFs for future use (not tracked by Git)
-└── pdf/                  # Sample PDFs for processing
-    └── 11919255_02.pdf   # Example PDF file
+├── architecture_consolidated.md  # System architecture documentation
+└── modularization_plan.md        # Plan for code modularization
 ```
 
-## Basic Usage with Docling (basic.py)
+## Web Interface
 
-The `basic.py` script demonstrates the most basic usage of Docling for document processing. It provides a simple command-line interface to convert PDFs to Markdown and JSON formats while preserving the document structure.
+The system now includes a user-friendly web interface for document processing, allowing users to:
 
-### Features
-- Convert PDFs to Markdown and JSON formats
-- Select specific pages to process
-- Preserve document structure and formatting
-- Simple command-line interface
+1. Upload documents (PDF, DOCX, images)
+2. Select which processors to use
+3. Specify pages to process
+4. View and compare results from different processors
+
+### Running the Web Interface
+
+```bash
+python app.py
+```
+
+Then open your browser to http://127.0.0.1:5000/
+
+### Web Interface Features
+
+- **Document Upload**: Upload documents through a drag-and-drop interface
+- **Processor Selection**: Choose which processors to use for each document
+- **Page Selection**: Specify which pages to process
+- **Processing Status**: Real-time status updates during processing
+- **Result Viewing**: View results from each processor
+- **Result Comparison**: Compare outputs from different processors
+  - Side-by-side view
+  - Diff view with highlighted differences
 
 ### Installation
 
@@ -75,37 +106,46 @@ python basic.py --pages "0,2,4"
 
 ---
 
-## Advanced Usage
+## System Architecture
 
-For more advanced usage with different backends, see the documentation for the specific processor scripts below.
+The Document Processing System uses a modular architecture with the following components:
 
-A modular document processing system that supports multiple VLM (Vision-Language Model) backends for OCR and document understanding. This system provides two main scripts for processing PDF documents:
+1. **Document Processor**: Core engine that analyzes documents and coordinates processing
+2. **Processor Registry**: Collection of document processors with different capabilities
+3. **Web Interface**: Flask-based web application for user interaction
+4. **Result Comparison**: Tools for comparing outputs from different processors
 
-1. **gemini_OCR.py** - Uses Google's Gemini API for cloud-based processing
-2. **LMstudio.py** - Uses locally running LM Studio for processing
+For detailed architecture information, see `architecture_consolidated.md`.
 
 ## Features
 
-- Support for multiple VLM backends (LM Studio, Google Gemini)
-- Processing of PDF documents with mixed content (text, images, tables)
-- Individual page processing with combined output files
-- Dual output formats (Markdown for readability, JSON for structural information)
-- Configurable page selection
-- Consistent command-line interface across scripts
-- Comprehensive logging and error handling
+- **Multiple Processing Engines**:
+  - **Docling**: Document structure analysis and text extraction
+  - **Gemini**: Google's AI for image and complex document understanding
+  - **LMStudio**: Local LLM-based document processing
+  - **Camelot**: Specialized table extraction from PDFs
+  - **Fallback**: Basic text extraction when other processors fail
+
+- **Content Analysis**: Automatic detection of document content types
+- **Intelligent Processor Selection**: Based on document content types
+- **Result Combination**: "OR" logic to combine results from multiple processors
+- **Web Interface**: User-friendly interface for document processing
+- **Comparison Tools**: Side-by-side and diff views for comparing processor outputs
+- **Processing Status**: Real-time status updates during document processing
+- **Error Handling**: Graceful handling of processing errors
 
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/Docling_OCR.git
-   cd Docling_OCR
+   git clone https://github.com/yourusername/document-processing-system.git
+   cd document-processing-system
    ```
 
 2. Create and activate a virtual environment:
    ```bash
-   python -m venv docling_OCR
-   source docling_OCR/bin/activate  # On Windows: .\docling_OCR\Scripts\activate
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
 3. Install dependencies:
@@ -114,85 +154,93 @@ A modular document processing system that supports multiple VLM (Vision-Language
    ```
 
 4. Set up environment variables:
-   - Copy the example environment file:
+   - Create a `.env` file in the project root:
      ```bash
-     cp .env.example .env
+     touch .env
      ```
-   - Edit the `.env` file and add your Google Gemini API key:
+   - Add your API keys and configuration:
      ```
-     GEMINI_API_KEY=your-api-key-here
+     GEMINI_API_KEY=your-gemini-api-key-here
+     LMSTUDIO_API_URL=http://localhost:1234/v1
      ```
-   - For LM Studio, uncomment and set the appropriate values if needed
 
    **Important:** Never commit the `.env` file to version control. It's already in `.gitignore` for security.
 
 ## Configuration
 
-1. **LM Studio** (Local):
-   - Download and run [LM Studio](https://lmstudio.ai/)
-   - Make sure the local API server is running (default: http://localhost:1234)
+### Required Services
 
-2. **Google Gemini** (Cloud):
+1. **LM Studio** (Local, Optional):
+   - Download and run [LM Studio](https://lmstudio.ai/)
+   - Start the local API server (default: http://localhost:1234)
+   - Load a model (recommended: internvl3-14b-instruct)
+
+2. **Google Gemini** (Cloud, Optional):
    - Get an API key from [Google AI Studio](https://aistudio.google.com/)
-   - Set the API key as an environment variable:
+   - Add to your `.env` file or set as an environment variable:
      ```bash
      export GEMINI_API_KEY='your-api-key-here'
      ```
 
+3. **Docling** (Local, Optional):
+   - Installed automatically with requirements.txt
+
+4. **Camelot** (Local, Optional):
+   - Installed automatically with requirements.txt
+   - Requires Ghostscript for PDF processing
+
+### Note on Processors
+
+The system is designed to work even if some processors are unavailable. It will use whatever processors are available and fall back to basic text extraction if needed.
+
 ## Usage
 
-The project provides two main scripts for processing PDF documents:
+### Web Interface (Recommended)
 
-### 1. Using Gemini (Cloud-Based Processing)
+1. Start the web server:
+   ```bash
+   python app.py
+   ```
 
-`gemini_OCR.py` uses Google's Gemini API for cloud-based processing of PDF documents.
+2. Open your browser to http://127.0.0.1:5000/
 
-#### Setup
+3. Upload a document and select processing options
 
-Before using Gemini, set your API key:
+4. View and compare results
 
-```bash
-export GEMINI_API_KEY="your-api-key-here"
-```
+### Command Line Usage
 
-#### Basic Usage
-
-```bash
-python gemini_OCR.py
-```
-
-This will process the default PDF (`./pdf/11919255_02.pdf`) and save the results to `./output_from_cloud/`.
-
-#### Specifying PDF and Pages
+For advanced users, the system can also be used from the command line:
 
 ```bash
-python gemini_OCR.py --input pdf/your_document.pdf --pages "2,3,5" --output ./your_output_folder
+python -c "from document_processor import DocumentProcessor; \
+          processor = DocumentProcessor(); \
+          processor.process_document('path/to/document.pdf', \
+                                    page_indices=[0,1,2], \
+                                    output_dir='./output')"
 ```
 
-You can specify pages using individual numbers separated by commas or ranges:
+### API Usage
 
-```bash
-python gemini_OCR.py --pages "1-3,5,7-9"
+The document processor can be imported and used in your own Python code:
+
+```python
+from document_processor import DocumentProcessor
+
+# Initialize with specific processors
+processor = DocumentProcessor(enabled_processors=['gemini', 'camelot'])
+
+# Process a document
+results = processor.process_document(
+    file_path='path/to/document.pdf',
+    page_indices=[0, 1, 2],  # Optional: specific pages to process
+    output_dir='./output'     # Optional: where to save results
+)
+
+# Access results
+for page_num, page_data in results.items():
+    print(f"Page {page_num}: {page_data['content'][:100]}...")
 ```
-
-#### How Gemini Processing Works
-
-1. The script extracts individual pages from the PDF
-2. Each page is sent to Gemini's API through Docling's DocumentConverter
-3. Gemini processes the page, handling both text and visual elements
-4. Results are saved as:
-   - A single combined Markdown file with all pages' content
-   - Individual JSON files for each page with structural information
-
-### 2. Using LM Studio (Local Processing)
-
-`LMstudio.py` uses a locally running LM Studio instance for processing PDF documents.
-
-#### Setup
-
-1. Download and install [LM Studio](https://lmstudio.ai/)
-2. Open LM Studio and load a model (default: internvl3-14b-instruct)
-3. Start the local server (typically at http://127.0.0.1:1234)
 
 #### Basic Usage
 
@@ -324,6 +372,44 @@ Docling_OCR/
 └── README.md              # This file
 ```
 
+## Modular PDF Processing Framework
+
+The project now includes a modular PDF processing framework that allows you to use multiple processors simultaneously or choose specific ones based on your needs.
+
+### Key Components
+
+1. **pdf_processor.py** - Main coordinator that manages multiple processors
+2. **processors/** - Directory containing individual processor implementations:
+   - **gemini_processor.py** - Google Gemini-based processor
+   - **lmstudio_processor.py** - Local LM Studio-based processor
+   - **camelot_processor.py** - Specialized table extraction processor
+
+### Using the Modular Framework
+
+The `process_pdf_example.py` script demonstrates how to use the modular framework:
+
+```bash
+# Process with all available processors
+python process_pdf_example.py path/to/your/document.pdf
+
+# Process with specific processors
+python process_pdf_example.py path/to/your/document.pdf --processors gemini lmstudio
+
+# Process specific pages
+python process_pdf_example.py path/to/your/document.pdf --pages "1-3,5,7-9"
+
+# Specify output directory
+python process_pdf_example.py path/to/your/document.pdf --output ./custom_output
+```
+
+### Benefits of the Modular Framework
+
+- **Flexibility**: Choose which processors to use for each run
+- **Parallel Processing**: Use multiple processors simultaneously
+- **Extensibility**: Easily add new processors by implementing the processor interface
+- **Consistent Output**: All processors follow the same output format
+- **Combined Results**: Option to combine results from multiple processors
+
 ## Adding a New Backend
 
 1. Create a new client class in `document_processing/clients/` that inherits from `BaseClient`
@@ -331,6 +417,18 @@ Docling_OCR/
 3. Update `document_processing/config.py` to include default settings for your backend
 4. Add your backend to the `__init__.py` files as needed
 
+## Future Development
+
+See `modularization_plan.md` for planned improvements to the codebase structure.
+
+Future enhancements may include:
+
+1. **Authentication**: User accounts and authentication
+2. **Caching**: Faster processing for previously seen documents
+3. **Batch Processing**: Processing multiple documents at once
+4. **Advanced Visualization**: Better visualization for tables and images
+5. **API Endpoints**: RESTful API for programmatic access
+
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License - see the LICENSE file for details.

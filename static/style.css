@@ -1,0 +1,125 @@
+/* Custom styles for Document Processing System */
+
+.content-panel {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 20px;
+    overflow: auto;
+    height: 600px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+}
+
+.diff-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 20px;
+    overflow: auto;
+    max-height: 600px;
+    font-family: monospace;
+}
+
+/* Diff highlighting */
+.added {
+    background-color: #d4edda;
+    display: block;
+    padding: 2px;
+}
+
+.removed {
+    background-color: #f8d7da;
+    display: block;
+    padding: 2px;
+}
+
+/* Diff table styles */
+table.diff {
+    font-family: monospace;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table.diff td {
+    padding: 0 3px;
+    vertical-align: top;
+    white-space: pre-wrap;
+    font-size: 14px;
+}
+
+table.diff .diff_header {
+    background-color: #e9ecef;
+    text-align: right;
+    padding: 0 3px;
+    border-right: 1px solid #dee2e6;
+}
+
+table.diff .diff_next {
+    background-color: #e9ecef;
+}
+
+table.diff .diff_add {
+    background-color: #d4edda;
+}
+
+table.diff .diff_chg {
+    background-color: #fff3cd;
+}
+
+table.diff .diff_sub {
+    background-color: #f8d7da;
+}
+
+/* Processing status */
+.processing-status {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+/* File upload area */
+.file-upload-area {
+    border: 2px dashed #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff;
+}
+
+.file-upload-area.dragover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+}
+
+/* Processor selection */
+.processor-selection {
+    margin-bottom: 20px;
+}
+
+/* Page navigation */
+.page-navigation {
+    margin-bottom: 20px;
+}
+
+.page-navigation .btn {
+    margin-right: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content-panel {
+        height: 300px;
+    }
+    
+    .diff-container {
+        max-height: 300px;
+    }
+}
