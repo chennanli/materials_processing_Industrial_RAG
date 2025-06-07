@@ -32,11 +32,85 @@ env/
 docling_OCR/
 
 # Project specific
-# Keep output directory structure but ignore its contents
-output/*
-!output/.gitkeep
-output_from_cloud/*
-!output_from_cloud/.gitkeep
+# Ignore Python cache and logs
+__pycache__/
+*.pyc
+*.log
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+
+__pycache__/
+*.pyc
+*.log
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
 uploads/*
 !uploads/.gitkeep
 
@@ -45,6 +119,7 @@ archieved/
 future_use_pdf/
 suggestions.md
 dialog.md
+modularization_plan.md
 
 # PDF and document files (except examples)
 *.pdf
@@ -66,12 +141,100 @@ dialog.md
 
 # Logs
 *.log
-*.log.*
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+
+*.log
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+.*
 !example.log
 logs/
-*.log.*
+*.log
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+.*
 !example.log.*
 docling_*.log
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore uploads folder contents but keep the folder
+uploads/*
+!uploads/.gitkeep
+
+# Ignore output folders
+output/
+output_from_cloud/
+
+# Ignore archived and backup files
+archieved/
+
+# Ignore Gemini API key (adjust filename if needed)
+gemini_api_key.txt
+
+# Other common ignores
+.DS_Store
+
 !docling_example.log
 
 # Local development

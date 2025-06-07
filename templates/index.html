@@ -16,7 +16,7 @@
                         <input type="file" class="form-control" id="file" name="file" required>
                         <div class="form-text">Supported formats: PDF, DOCX, JPG, PNG</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="processors" class="form-label">Select Processors</label>
                         <div class="form-check">
@@ -34,19 +34,19 @@
                         </div>
                         {% endfor %}
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="pages" class="form-label">Pages to Process (Optional)</label>
                         <input type="text" class="form-control" id="pages" name="pages" placeholder="e.g., 1-3,5,7-9">
                         <div class="form-text">Leave empty to process all pages</div>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary">Process Document</button>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
@@ -75,7 +75,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const allProcessorsCheckbox = document.getElementById('all-processors');
         const processorOptions = document.querySelectorAll('.processor-option');
-        
+
         allProcessorsCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 processorOptions.forEach(option => {

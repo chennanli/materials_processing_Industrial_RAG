@@ -29,7 +29,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="proc2" class="form-label">Processor 2</label>
                         <select class="form-select" id="proc2" name="proc2">
@@ -38,7 +38,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="page" class="form-label">Page</label>
                         <select class="form-select" id="page" name="page">
@@ -47,13 +47,13 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary">Compare</button>
                 </form>
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-8">
         <ul class="nav nav-tabs" id="resultTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -63,7 +63,7 @@
                 <button class="nav-link" id="diff-tab" data-bs-toggle="tab" data-bs-target="#diff" type="button" role="tab" aria-controls="diff" aria-selected="false">Diff View</button>
             </li>
         </ul>
-        
+
         <div class="tab-content" id="resultTabsContent">
             <div class="tab-pane fade show active" id="side-by-side" role="tabpanel" aria-labelledby="side-by-side-tab">
                 <div class="row">
@@ -79,7 +79,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
@@ -94,7 +94,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="tab-pane fade" id="diff" role="tabpanel" aria-labelledby="diff-tab">
                 <div class="card">
                     <div class="card-header">
@@ -119,19 +119,19 @@
         const proc1Select = document.getElementById('proc1');
         const proc2Select = document.getElementById('proc2');
         const pageSelect = document.getElementById('page');
-        
+
         // Update page options when processor 1 changes
         proc1Select.addEventListener('change', function() {
             const processor = this.value;
             const baseName = '{{ base_name }}';
-            
+
             pageSelect.innerHTML = '<option value="">Loading pages...</option>';
-            
+
             fetch(`/api/pages/${baseName}/${processor}`)
                 .then(response => response.json())
                 .then(pages => {
                     pageSelect.innerHTML = '';
-                    
+
                     if (pages.length === 0) {
                         const option = document.createElement('option');
                         option.value = '';
@@ -151,16 +151,16 @@
                     pageSelect.innerHTML = '<option value="">Error loading pages</option>';
                 });
         });
-        
+
         // Handle form submission
         compareForm.addEventListener('submit', function(event) {
             event.preventDefault();
-            
+
             const proc1 = proc1Select.value;
             const proc2 = proc2Select.value;
             const page = pageSelect.value;
             const baseName = '{{ base_name }}';
-            
+
             window.location.href = `/compare/${baseName}?proc1=${proc1}&proc2=${proc2}&page=${page}`;
         });
     });

@@ -20,9 +20,9 @@ Yes, the implementation does allow you to choose which processors to use. In `pr
 
 ```python
 parser.add_argument(
-    "--processors", 
+    "--processors",
     choices=["all", "gemini", "lmstudio", "camelot"],
-    nargs="+", 
+    nargs="+",
     default=["all"],
     help="Which processors to use for processing"
 )
