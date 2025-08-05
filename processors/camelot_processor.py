@@ -76,7 +76,7 @@ class CamelotProcessor:
                 pages=pages,
                 flavor="stream",
                 edge_tol=100,
-                process_background=True,
+                # process_background=True,  # Not compatible with stream flavor
             )
 
             # Combine and process tables

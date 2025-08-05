@@ -13,6 +13,7 @@ import os
 import sys
 import threading
 import uuid
+import warnings
 from pathlib import Path
 
 from flask import (
@@ -31,6 +32,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from config import OUTPUT_DIR
 from document_processor import DocumentProcessor, parse_page_indices
 
+# Suppress MPS pin_memory warnings (cosmetic only, doesn't affect performance)
+warnings.filterwarnings("ignore", message=".*pin_memory.*not supported on MPS.*")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -46,6 +50,20 @@ app.config["UPLOAD_FOLDER"] = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "uploads"
 )
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload size
+
+
+# Custom template filter for proper processor name formatting
+@app.template_filter("processor_name")
+def processor_name_filter(processor):
+    """Format processor names for display."""
+    name_mapping = {
+        "lmstudio": "LMStudio",
+        "docling": "Docling",
+        "camelot": "Camelot",
+        "gemini": "Gemini",
+    }
+    return name_mapping.get(processor, processor.capitalize())
+
 
 # Create upload folder if it doesn't exist
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
@@ -394,6 +412,21 @@ def api_task_status(task_id):
                 }
             )
         return jsonify({"status": "unknown", "message": "Task not found"})
+
+
+@app.route("/api/model-info")
+def api_model_info():
+    """API endpoint to get current model information."""
+    try:
+        # Get model info from LMStudio processor
+        from processors.lmstudio_processor import LMStudioProcessor
+
+        lm_processor = LMStudioProcessor()
+        model_info = lm_processor.get_model_info()
+
+        return jsonify({"status": "success", "model_info": model_info})
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
 
 
 if __name__ == "__main__":

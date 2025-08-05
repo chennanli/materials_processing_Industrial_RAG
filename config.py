@@ -24,3 +24,9 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
 # Use base URL only, endpoints will be appended in the processor
 LMSTUDIO_URL = os.getenv("LMSTUDIO_URL", "http://127.0.0.1:1234")
 LMSTUDIO_MODEL = os.getenv("LMSTUDIO_MODEL", "internvl3-14b-instruct")
+
+# LM Studio Model Preferences (for optimization)
+LMSTUDIO_PREFERRED_OCR_MODEL = os.getenv("LMSTUDIO_OCR_MODEL", "monkeyocr-recognition")
+LMSTUDIO_PREFERRED_VISION_MODEL = os.getenv(
+    "LMSTUDIO_VISION_MODEL", "internvl3-14b-instruct"
+)

@@ -119,20 +119,26 @@ For detailed architecture information, see `architecture_consolidated.md`.
 
 ## Features
 
-- **Multiple Processing Engines**:
-  - **Docling**: Document structure analysis and text extraction
-  - **Gemini**: Google's AI for image and complex document understanding
-  - **LMStudio**: Local LLM-based document processing
+- **Multiple Processing Engines** (Parallel Processing):
+  - **Docling**: Document structure analysis, layout understanding, text extraction
+  - **Gemini**: Fast cloud-based OCR, vision understanding, image processing
+  - **LMStudio**: Private local OCR with custom models (internvl3-14b-instruct)
   - **Camelot**: Specialized table extraction from PDFs
   - **Fallback**: Basic text extraction when other processors fail
 
-- **Content Analysis**: Automatic detection of document content types
-- **Intelligent Processor Selection**: Based on document content types
-- **Result Combination**: "OR" logic to combine results from multiple processors
-- **Web Interface**: User-friendly interface for document processing
-- **Comparison Tools**: Side-by-side and diff views for comparing processor outputs
-- **Processing Status**: Real-time status updates during document processing
-- **Error Handling**: Graceful handling of processing errors
+- **Smart Processing Architecture**:
+  - **Parallel Execution**: All selected processors run simultaneously (not sequentially)
+  - **Individual Selection**: Choose specific processors (Gemini only, LMStudio only, etc.)
+  - **Intelligent Combination**: Two-pass "OR" logic with preferences for maximum information
+  - **Content Type Specialization**: Best processor for each content type (TEXT, TABLES, IMAGES)
+
+- **Advanced Features**:
+  - **Content Analysis**: Optional automatic detection of document content types
+  - **Processor Preferences**: TEXT (Gemini→LMStudio→Docling), TABLES (Camelot→Docling), IMAGES (Gemini→LMStudio)
+  - **Web Interface**: User-friendly interface with processor selection
+  - **Comparison Tools**: Side-by-side and diff views for comparing processor outputs
+  - **Processing Status**: Real-time status updates during document processing
+  - **Error Handling**: Graceful handling of processing errors with fallbacks
 
 ## Installation
 

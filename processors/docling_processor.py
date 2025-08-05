@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from docling.document import Document
+from docling.datamodel.document import DoclingDocument
 from docling.document_converter import DocumentConverter
 
 # Configure logging
@@ -87,7 +87,7 @@ class DoclingProcessor:
 
         Args:
             pdf_path: Path to the PDF file
-            page_indices: List of page indices to extract (0-based)
+            page_indices: List of page indices to extract (1-based, will be converted to 0-based)
 
         Returns:
             Path to the temporary file
@@ -100,11 +100,13 @@ class DoclingProcessor:
         writer = PdfWriter()
 
         for idx in page_indices:
-            if 0 <= idx < len(reader.pages):
-                writer.add_page(reader.pages[idx])
+            # Convert from 1-based (user input) to 0-based (PyPDF2 requirement)
+            zero_based_idx = idx - 1
+            if 0 <= zero_based_idx < len(reader.pages):
+                writer.add_page(reader.pages[zero_based_idx])
             else:
                 logger.warning(
-                    f"Page index {idx} out of range (0-{len(reader.pages)-1})"
+                    f"Page {idx} out of range (document has {len(reader.pages)} pages)"
                 )
 
         # Create a temporary file
@@ -114,7 +116,7 @@ class DoclingProcessor:
 
         return temp.name
 
-    def _process_document(self, doc: Document) -> Dict[str, Any]:
+    def _process_document(self, doc: DoclingDocument) -> Dict[str, Any]:
         """Process a Docling Document object.
 
         Args:
@@ -125,57 +127,91 @@ class DoclingProcessor:
         """
         results = {}
 
-        # Process each page
-        for i, page in enumerate(doc.pages):
-            page_num = i + 1  # Convert to 1-based for consistency with other processors
-
-            # Extract text content
+        # Process each page - doc.pages is a dictionary with page numbers as keys
+        for page_num, page_item in doc.pages.items():
+            # Extract text content from document-level items
             text_blocks = []
-            for block in page.blocks:
-                text_blocks.append(
-                    {
-                        "text": block.text,
-                        "bbox": (
-                            block.bbox.to_dict() if hasattr(block, "bbox") else None
-                        ),
-                        "type": block.type,
-                    }
-                )
+            page_texts = []
+
+            # Get all text items for this page
+            for text_item in doc.texts:
+                if hasattr(text_item, "prov") and text_item.prov:
+                    # Check if this text belongs to the current page
+                    for prov in text_item.prov:
+                        if hasattr(prov, "page_no") and prov.page_no == page_num:
+                            text_blocks.append(
+                                {
+                                    "text": (
+                                        text_item.text
+                                        if hasattr(text_item, "text")
+                                        else str(text_item)
+                                    ),
+                                    "bbox": (
+                                        prov.bbox.model_dump()
+                                        if hasattr(prov, "bbox") and prov.bbox
+                                        else None
+                                    ),
+                                    "type": "text",
+                                }
+                            )
+                            page_texts.append(
+                                text_item.text
+                                if hasattr(text_item, "text")
+                                else str(text_item)
+                            )
+                            break
 
             # Extract tables if enabled
             tables = []
             if self.extract_tables:
-                for table in page.find_tables():
-                    table_data = []
-                    for row in table.rows:
-                        table_row = []
-                        for cell in row.cells:
-                            table_row.append(cell.text)
-                        table_data.append(table_row)
-
-                    tables.append(
-                        {
-                            "table_id": f"page{page_num}_table{len(tables)+1}",
-                            "data": table_data,
-                            "markdown": self._table_to_markdown(table_data),
-                        }
-                    )
+                for table_item in doc.tables:
+                    if hasattr(table_item, "prov") and table_item.prov:
+                        # Check if this table belongs to the current page
+                        for prov in table_item.prov:
+                            if hasattr(prov, "page_no") and prov.page_no == page_num:
+                                # Convert table to markdown using Docling's built-in method
+                                table_markdown = (
+                                    table_item.export_to_markdown(doc)
+                                    if hasattr(table_item, "export_to_markdown")
+                                    else str(table_item)
+                                )
+                                tables.append(
+                                    {
+                                        "table_id": f"page{page_num}_table{len(tables)+1}",
+                                        "markdown": table_markdown,
+                                        "bbox": (
+                                            prov.bbox.model_dump()
+                                            if hasattr(prov, "bbox") and prov.bbox
+                                            else None
+                                        ),
+                                    }
+                                )
+                                break
 
             # Extract images if enabled
             images = []
             if self.extract_images:
-                for img in page.images:
-                    images.append(
-                        {
-                            "image_id": f"page{page_num}_image{len(images)+1}",
-                            "bbox": (
-                                img.bbox.to_dict() if hasattr(img, "bbox") else None
-                            ),
-                            "alt_text": (
-                                img.alt_text if hasattr(img, "alt_text") else ""
-                            ),
-                        }
-                    )
+                for picture_item in doc.pictures:
+                    if hasattr(picture_item, "prov") and picture_item.prov:
+                        # Check if this image belongs to the current page
+                        for prov in picture_item.prov:
+                            if hasattr(prov, "page_no") and prov.page_no == page_num:
+                                images.append(
+                                    {
+                                        "image_id": f"page{page_num}_image{len(images)+1}",
+                                        "bbox": (
+                                            prov.bbox.model_dump()
+                                            if hasattr(prov, "bbox") and prov.bbox
+                                            else None
+                                        ),
+                                        "alt_text": (
+                                            picture_item.text
+                                            if hasattr(picture_item, "text")
+                                            else ""
+                                        ),
+                                    }
+                                )
+                                break
 
             # Store page results
             results[str(page_num)] = {

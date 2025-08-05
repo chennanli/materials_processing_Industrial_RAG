@@ -19,7 +19,12 @@ import requests
 from PIL import Image
 
 sys.path.append(str(Path(__file__).parent.parent))
-from config import LMSTUDIO_MODEL, LMSTUDIO_URL
+from config import (
+    LMSTUDIO_MODEL,
+    LMSTUDIO_PREFERRED_OCR_MODEL,
+    LMSTUDIO_PREFERRED_VISION_MODEL,
+    LMSTUDIO_URL,
+)
 
 # Configure logging
 logger = logging.getLogger("LMStudioProcessor")
@@ -37,6 +42,239 @@ class LMStudioClient:
         """
         self.api_url = api_url
         self.model = model
+        self.current_model = None
+        self.model_capabilities = {}
+        self._connection_cache = None
+        self._cache_time = 0
+        self._cache_duration = 30  # Cache connection status for 30 seconds
+
+    def _is_connection_cached(self):
+        """Check if we have a valid cached connection status."""
+        import time
+
+        return (
+            self._connection_cache is not None
+            and time.time() - self._cache_time < self._cache_duration
+        )
+
+    def _check_connection_fast(self):
+        """Fast connection check with caching."""
+        import time
+
+        # Use cached result if available
+        if self._is_connection_cached():
+            return self._connection_cache
+
+        # Perform actual connection check
+        try:
+            start_time = time.time()
+            response = requests.get(
+                f"{self.api_url}/v1/models", timeout=3
+            )  # Reduced timeout
+            end_time = time.time()
+
+            is_connected = response.status_code == 200
+
+            # Cache the result
+            self._connection_cache = is_connected
+            self._cache_time = time.time()
+
+            logger.debug(
+                f"LMStudio connection check: {end_time - start_time:.2f}s, status: {is_connected}"
+            )
+            return is_connected
+
+        except Exception as e:
+            logger.debug(f"LMStudio connection failed: {e}")
+            # Cache the failure for a shorter time
+            self._connection_cache = False
+            self._cache_time = time.time()
+            return False
+
+    def detect_current_model(self):
+        """Detect which model is currently loaded in LM Studio.
+
+        Returns:
+            str: Current model name or None if no model detected
+        """
+        # Quick connection check first
+        if not self._check_connection_fast():
+            logger.debug("LMStudio not connected, skipping model detection")
+            return None
+
+        try:
+            import time
+
+            start_time = time.time()
+            models_response = requests.get(
+                f"{self.api_url}/v1/models", timeout=3
+            )  # Reduced timeout
+            end_time = time.time()
+
+            if models_response.status_code == 200:
+                models_data = models_response.json()
+                available_models = models_data.get("data", [])
+                if available_models:
+                    # Get the first (and usually only) loaded model
+                    current_model = available_models[0]["id"]
+                    self.current_model = current_model
+                    logger.info(
+                        f"Detected LMStudio model: {current_model} ({end_time - start_time:.2f}s)"
+                    )
+                    return current_model
+                else:
+                    logger.warning("No models currently loaded in LMStudio")
+                    return None
+            else:
+                logger.warning(
+                    f"Failed to get models from LMStudio: {models_response.status_code}"
+                )
+                return None
+        except Exception as e:
+            logger.warning(f"Could not detect current LMStudio model: {e}")
+            return None
+
+    def is_ocr_specialized_model(self, model_name=None):
+        """Check if the current or specified model is specialized for OCR.
+
+        Args:
+            model_name: Model name to check, or None to check current model
+
+        Returns:
+            bool: True if model is OCR-specialized
+        """
+        if model_name is None:
+            model_name = self.current_model or self.model
+
+        if not model_name:
+            return False
+
+        # Check for OCR-specialized model indicators
+        ocr_indicators = [
+            "monkeyocr",
+            "ocrflux",
+            "ocr",
+            "recognition",
+            "text-recognition",
+            "document-ai",
+            "textract",
+            "paddle-ocr",
+            "flux",
+        ]
+
+        model_lower = model_name.lower()
+        return any(indicator in model_lower for indicator in ocr_indicators)
+
+    def get_model_type(self, model_name=None):
+        """Determine the type/specialization of the model.
+
+        Args:
+            model_name: Model name to check, or None to check current model
+
+        Returns:
+            str: 'ocr', 'vision', or 'general'
+        """
+        if model_name is None:
+            model_name = self.current_model or self.model
+
+        if not model_name:
+            return "general"
+
+        if self.is_ocr_specialized_model(model_name):
+            return "ocr"
+        elif "vision" in model_name.lower() or "vl" in model_name.lower():
+            return "vision"
+        else:
+            return "general"
+
+    def get_optimized_ocr_prompt(self, page_num, model_type=None):
+        """Get OCR prompt optimized for the current model type.
+
+        Args:
+            page_num: Page number being processed
+            model_type: Model type ('ocr', 'vision', 'general') or None for auto-detect
+
+        Returns:
+            str: Optimized prompt for OCR task
+        """
+        if model_type is None:
+            model_type = self.get_model_type()
+
+        if model_type == "ocr":
+            # Specialized OCR model - focus on accuracy and structure
+            return f"""Extract all text from this document image with high accuracy. This is page {page_num}.
+
+Requirements:
+- Preserve exact text content and formatting
+- Maintain table structures using markdown format
+- Keep original layout and spacing
+- Handle special characters and symbols correctly
+- Output clean, structured text
+
+Focus on accuracy over interpretation."""
+
+        elif model_type == "vision":
+            # Vision-language model - can understand context
+            return f"""You are an expert at OCR and document analysis. Please extract all text and tables from this image.
+This is page {page_num} of a document. Format tables properly using markdown.
+Preserve the original layout as much as possible.
+
+Please provide:
+1. All text content in reading order
+2. Tables formatted as markdown
+3. Any important visual elements described
+
+Maintain document structure and formatting."""
+
+        else:
+            # General model - standard approach
+            return f"""Extract text from this document image (page {page_num}).
+Preserve formatting and structure. Format any tables as markdown.
+Provide clean, accurate text extraction."""
+
+    def get_optimized_text_enhancement_prompt(self, text, page_num, model_type=None):
+        """Get text enhancement prompt optimized for the current model type.
+
+        Args:
+            text: Text to enhance
+            page_num: Page number
+            model_type: Model type or None for auto-detect
+
+        Returns:
+            str: Optimized prompt for text enhancement
+        """
+        if model_type is None:
+            model_type = self.get_model_type()
+
+        if model_type == "ocr":
+            # OCR model - focus on error correction
+            return f"""Clean and correct this OCR text from page {page_num}:
+
+{text}
+
+Tasks:
+- Fix OCR recognition errors
+- Correct character substitutions (e.g., 'rn' → 'm', '0' → 'O')
+- Maintain original formatting and structure
+- Preserve technical terms and numbers exactly
+- Keep table formatting intact
+
+Output only the corrected text."""
+
+        else:
+            # Vision/General model - comprehensive enhancement
+            return f"""You are an expert at OCR post-processing. Below is text extracted from a PDF document page {page_num}.
+Please clean and enhance this text by:
+1. Fixing OCR errors and typos
+2. Improving formatting and structure
+3. Ensuring proper spacing and line breaks
+4. Preserving tables and lists
+5. Maintaining technical accuracy
+
+Original text:
+{text}
+
+Please provide the cleaned and enhanced version:"""
 
     def generate(self, prompt, max_tokens=1024, temperature=0.1):
         """Generate text using LM Studio.
@@ -49,37 +287,22 @@ class LMStudioClient:
         Returns:
             Generated text
         """
-        try:
-            # First, check available models to confirm our model exists
-            try:
-                models_response = requests.get(f"{self.api_url}/v1/models", timeout=5)
-                if models_response.status_code == 200:
-                    models_data = models_response.json()
-                    available_models = [
-                        model["id"] for model in models_data.get("data", [])
-                    ]
-                    logger.info(f"Available LMStudio models: {available_models}")
+        import time
 
-                    if self.model not in available_models:
-                        logger.warning(
-                            f"Model '{self.model}' not found in available models. Using first available model instead."
-                        )
-                        if available_models:
-                            self.model = available_models[0]
-                            logger.info(f"Using model: {self.model}")
-                        else:
-                            logger.error("No models available in LMStudio")
-                            return None
-                else:
-                    logger.warning(
-                        f"Could not get available models: {models_response.status_code} - {models_response.text}"
-                    )
-            except Exception as e:
-                logger.warning(f"Error checking available models: {e}")
+        start_time = time.time()
+
+        try:
+            # Quick connection check (cached)
+            if not self._check_connection_fast():
+                logger.error("LMStudio not available")
+                return None
+
+            # Use current model if detected, otherwise use configured model
+            model_to_use = self.current_model or self.model
 
             # Use the chat completions endpoint with the correct format
             payload = {
-                "model": self.model,
+                "model": model_to_use,
                 "messages": [
                     {
                         "role": "system",
@@ -91,12 +314,16 @@ class LMStudioClient:
                 "temperature": temperature,
             }
 
-            logger.info(f"Sending request to LMStudio with model: {self.model}")
+            logger.debug(f"Sending request to LMStudio with model: {model_to_use}")
 
-            # Use the correct chat completions endpoint
+            # Use the correct chat completions endpoint with optimized timeout
+            api_start_time = time.time()
             response = requests.post(
-                f"{self.api_url}/v1/chat/completions", json=payload, timeout=60
+                f"{self.api_url}/v1/chat/completions",
+                json=payload,
+                timeout=90,  # Reduced from 120
             )
+            api_end_time = time.time()
 
             if response.status_code != 200:
                 logger.error(
@@ -105,13 +332,15 @@ class LMStudioClient:
                 return None
 
             result = response.json()
-            logger.info(f"Received response from LMStudio: {result.keys()}")
 
             if "choices" in result and len(result["choices"]) > 0:
                 # Extract content from the chat response format
                 content = result["choices"][0]["message"]["content"].strip()
+                total_time = time.time() - start_time
+                api_time = api_end_time - api_start_time
+
                 logger.info(
-                    f"Successfully generated content with LMStudio (length: {len(content)})"
+                    f"✅ LMStudio generation complete: {len(content)} chars in {total_time:.2f}s (API: {api_time:.2f}s)"
                 )
                 return content
             else:
@@ -119,7 +348,8 @@ class LMStudioClient:
                 return None
 
         except Exception as e:
-            logger.error(f"Error calling LM Studio API: {e}")
+            total_time = time.time() - start_time
+            logger.error(f"❌ LMStudio API error after {total_time:.2f}s: {e}")
             return None
 
 
@@ -137,19 +367,108 @@ class LMStudioProcessor:
         self.api_url = api_url
         self.model = model
         self.lm_client = LMStudioClient(api_url, model)
+        self.current_model = None
+        self.model_type = None
 
-        # Check connection
-        if not self._check_connection():
+        # Check connection and detect current model (using fast cached method)
+        if not self.lm_client._check_connection_fast():
             logger.warning(f"Could not connect to LM Studio at {api_url}")
+        else:
+            self._detect_and_optimize_for_current_model()
+
+    def _detect_and_optimize_for_current_model(self):
+        """Detect current model and optimize processing accordingly."""
+        self.current_model = self.lm_client.detect_current_model()
+        if self.current_model:
+            self.model_type = self.lm_client.get_model_type(self.current_model)
+            logger.info(
+                f"LMStudio model detected: {self.current_model} (type: {self.model_type})"
+            )
+
+            # Provide user guidance
+            if self.model_type == "ocr":
+                logger.info(
+                    "✅ OCR-specialized model detected - optimized for text recognition"
+                )
+            elif self.model_type == "vision":
+                logger.info(
+                    "✅ Vision-language model detected - good for general document analysis"
+                )
+            else:
+                logger.info("ℹ️  General model detected - basic OCR capabilities")
+
+            # Show recommendations
+            self._show_model_recommendations()
+        else:
+            logger.warning(
+                "Could not detect current LMStudio model - using default settings"
+            )
+
+    def _show_model_recommendations(self):
+        """Show recommendations based on current model and available models."""
+        if not self.current_model:
+            return
+
+        current_lower = self.current_model.lower()
+
+        # Check if user has optimal model for their task
+        if "monkeyocr" in current_lower:
+            logger.info("🎯 Perfect! MonkeyOCR is ideal for text-heavy documents")
+        elif "ocrflux" in current_lower or "flux" in current_lower:
+            logger.info(
+                "🎯 Excellent! OCRFlux is optimized for document text recognition"
+            )
+        elif "internvl" in current_lower:
+            logger.info("🎯 Great! InternVL is excellent for complex document analysis")
+        elif self.model_type == "ocr":
+            logger.info(
+                "🎯 OCR-specialized model loaded - excellent for text extraction"
+            )
+        else:
+            logger.info(
+                "💡 Tip: For better OCR results, consider loading MonkeyOCR, OCRFlux, or similar OCR-specialized model"
+            )
+
+    def get_model_info(self):
+        """Get information about the current model setup.
+
+        Returns:
+            dict: Model information and recommendations
+        """
+        return {
+            "current_model": self.current_model,
+            "model_type": self.model_type,
+            "is_ocr_specialized": self.lm_client.is_ocr_specialized_model(
+                self.current_model
+            ),
+            "preferred_ocr_model": LMSTUDIO_PREFERRED_OCR_MODEL,
+            "preferred_vision_model": LMSTUDIO_PREFERRED_VISION_MODEL,
+            "recommendations": self._get_recommendations(),
+        }
+
+    def _get_recommendations(self):
+        """Get model recommendations based on current setup."""
+        if not self.current_model:
+            return ["Load a model in LMStudio to enable processing"]
+
+        recommendations = []
+
+        if self.model_type == "ocr":
+            recommendations.append("✅ Current model is optimized for OCR tasks")
+        elif "monkeyocr" in self.current_model.lower():
+            recommendations.append(
+                "🎯 Perfect! MonkeyOCR provides excellent text recognition"
+            )
+        else:
+            recommendations.append(
+                "💡 For better OCR: Load MonkeyOCR-Recognition model"
+            )
+
+        return recommendations
 
     def _check_connection(self):
-        """Check if LM Studio is running properly."""
-        try:
-            response = requests.get(f"{self.api_url}/v1/models", timeout=5)
-            return response.status_code == 200
-        except Exception as e:
-            logger.warning(f"Could not connect to LM Studio: {e}")
-            return False
+        """Check if LM Studio is running properly (uses fast cached method)."""
+        return self.lm_client._check_connection_fast()
 
     def process(
         self, pdf_path: str, page_indices: Optional[List[int]] = None
@@ -319,8 +638,8 @@ class LMStudioProcessor:
             )
             return None
 
-        if not self._check_connection():
-            logger.warning("LMStudio connection failed, skipping table enhancement")
+        if not self.lm_client._check_connection_fast():
+            logger.debug("LMStudio not available, skipping table enhancement")
             return None
 
         prompt = f"""
@@ -381,20 +700,10 @@ class LMStudioProcessor:
             )
             text = text[:max_text_length] + "\n[Content truncated due to length]\n"
 
-        prompt = f"""
-        You are an expert at OCR post-processing. Below is text extracted from a PDF document page {page_num}.
-        Please clean and enhance this text by:
-        1. Fixing OCR errors and typos
-        2. Preserving the original formatting as much as possible
-        3. Ensuring paragraphs are properly separated
-        4. Maintaining any bullet points or numbered lists
-        5. Preserving important data like dates, numbers, and measurements
-
-        Original text:
-        {text}
-
-        Enhanced text:
-        """
+        # Use optimized prompt based on current model type
+        prompt = self.lm_client.get_optimized_text_enhancement_prompt(
+            text, page_num, self.model_type
+        )
 
         try:
             logger.info(
@@ -465,12 +774,8 @@ class LMStudioProcessor:
             image.save(buffered, format="JPEG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
 
-            # Create prompt for OCR
-            prompt = f"""
-            You are an expert at OCR and document analysis. Please extract all text and tables from this image.
-            This is page {page_num} of a document. Format tables properly using markdown.
-            Preserve the original layout as much as possible.
-            """
+            # Create optimized prompt based on current model type
+            prompt = self.lm_client.get_optimized_ocr_prompt(page_num, self.model_type)
 
             # Prepare the payload for LMStudio with the image
             payload = {

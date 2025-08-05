@@ -64,12 +64,76 @@ This approach gives you:
 
 ### Q: Are you combining the results correctly? Should it be "OR" logic or "AND" logic?
 
-The results should be combined using "OR" logic, not "AND" logic. This means:
+The system uses **intelligent "OR" logic with preferences** - a sophisticated two-pass combination strategy:
 
-- "OR" logic: Include content from any processor that successfully extracted information (more comprehensive)
-- "AND" logic: Only include content that all processors agreed on (more restrictive)
+#### **Pass 1: Preferred Processors**
+- **TEXT**: Gemini → LMStudio → Docling (vision models preferred for OCR)
+- **TABLES**: Camelot → Docling (specialist preferred)
+- **IMAGES**: Gemini → LMStudio → Docling (vision models preferred)
+- If preferred processor finds content, use it and mark as "added"
 
-The issue in the original implementation was that it was using more of an "AND" approach, which resulted in missing content from some processors. The fixed implementation uses "OR" logic to ensure we get the most comprehensive information from all processors.
+#### **Pass 2: Fallback "OR" Logic**
+- For any missing content types, try **ANY** available processor
+- **Goal**: Get maximum information possible
+- **Logic**: "If Processor A didn't find tables, maybe Processor B did"
+
+#### **Why This is Better Than Simple Logic:**
+- **Simple "OR"**: Include content from any processor (good, but no quality preference)
+- **Simple "AND"**: Only include content all processors agreed on (restrictive, loses information)
+- **Smart "OR" with Preferences**: Best processor for each content type + fallback for completeness
+
+This ensures you get the highest quality extraction for each content type while never missing information that other processors might have found.
+
+### Q: Do the processors run sequentially (one after another) or in parallel?
+
+The processors run **in parallel**, not sequentially. This is a key architectural feature:
+
+#### **Parallel Processing Architecture:**
+```
+Document Input
+     ↓
+[All Selected Processors Run Simultaneously]
+     ↓
+┌─────────────┬─────────────┬─────────────┬─────────────┐
+│   Docling   │   Gemini    │  LMStudio   │   Camelot   │
+│  (Structure)│    (OCR)    │ (Local OCR) │  (Tables)   │
+└─────────────┴─────────────┴─────────────┴─────────────┘
+     ↓
+[Smart Combination Logic]
+     ↓
+Combined Result (Maximum Information)
+```
+
+#### **Benefits of Parallel Processing:**
+- **Speed**: All processors work simultaneously, not waiting for each other
+- **Independence**: Each processor can focus on what it does best
+- **Reliability**: If one processor fails, others continue working
+- **Flexibility**: Users can select any combination of processors
+
+#### **NOT Sequential Processing:**
+- ❌ Docling first → then others (would be slow and create dependencies)
+- ✅ All selected processors → parallel → smart combination
+
+### Q: Can I use individual processors (like just Gemini or just LMStudio)?
+
+**Yes!** The system supports complete flexibility in processor selection:
+
+#### **Individual Processor Usage:**
+- **Gemini Only**: Fast cloud OCR with vision understanding
+- **LMStudio Only**: Private local OCR with your custom model (internvl3-14b-instruct)
+- **Docling Only**: Document structure analysis and text extraction
+- **Camelot Only**: Specialized table extraction
+
+#### **How to Select Individual Processors:**
+1. **Web Interface**: Uncheck "All Available Processors" and select specific ones
+2. **Command Line**: `python document_processor.py file.pdf --processors gemini`
+3. **API**: `DocumentProcessor(enabled_processors=['gemini'])`
+
+#### **When to Use Individual Processors:**
+- **Gemini Only**: When you need fast, accurate OCR and don't mind cloud processing
+- **LMStudio Only**: When you need complete privacy and local processing
+- **Docling Only**: When you need document structure analysis without OCR
+- **Camelot Only**: When you only need table extraction from PDFs
 
 ### Q: How can I compare the outputs from different processors?
 

@@ -25,7 +25,7 @@
                         <label for="proc1" class="form-label">Processor 1</label>
                         <select class="form-select" id="proc1" name="proc1">
                             {% for processor in processors %}
-                            <option value="{{ processor }}" {% if processor == selected_proc1 %}selected{% endif %}>{{ processor|capitalize }}</option>
+                            <option value="{{ processor }}" {% if processor == selected_proc1 %}selected{% endif %}>{{ processor|processor_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -34,7 +34,7 @@
                         <label for="proc2" class="form-label">Processor 2</label>
                         <select class="form-select" id="proc2" name="proc2">
                             {% for processor in processors %}
-                            <option value="{{ processor }}" {% if processor == selected_proc2 %}selected{% endif %}>{{ processor|capitalize }}</option>
+                            <option value="{{ processor }}" {% if processor == selected_proc2 %}selected{% endif %}>{{ processor|processor_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -70,7 +70,7 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="card-title">{{ selected_proc1|capitalize }}</h6>
+                                <h6 class="card-title">{{ selected_proc1|processor_name }}</h6>
                             </div>
                             <div class="card-body">
                                 <div class="content-panel">
@@ -83,7 +83,7 @@
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
-                                <h6 class="card-title">{{ selected_proc2|capitalize }}</h6>
+                                <h6 class="card-title">{{ selected_proc2|processor_name }}</h6>
                             </div>
                             <div class="card-body">
                                 <div class="content-panel">
