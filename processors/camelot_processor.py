@@ -42,7 +42,7 @@ class CamelotProcessor:
             )
 
     def process(
-        self, pdf_path: str, page_indices: Optional[List[int]] = None
+        self, pdf_path: str, page_indices: Optional[List[int]] = None, progress_callback = None
     ) -> Dict[str, Any]:
         """Process a PDF file with Camelot.
 
@@ -65,12 +65,18 @@ class CamelotProcessor:
         results = {}
 
         try:
+            if progress_callback:
+                progress_callback("processing_page", 1, 3) # Phase 1: Lattice tables extraction
+                
             # Try lattice mode first (for tables with borders)
             lattice_tables = camelot.read_pdf(
                 pdf_path, pages=pages, flavor="lattice", process_background=True
             )
 
             # Then try stream mode (for tables without borders)
+            if progress_callback:
+                progress_callback("processing_page", 2, 3) # Phase 2: Stream tables extraction
+                
             stream_tables = camelot.read_pdf(
                 pdf_path,
                 pages=pages,
@@ -80,6 +86,9 @@ class CamelotProcessor:
             )
 
             # Combine and process tables
+            if progress_callback:
+                progress_callback("processing_page", 3, 3) # Phase 3: Processing and combining tables
+                
             all_tables = self._process_tables(lattice_tables, stream_tables)
 
             # Organize by page

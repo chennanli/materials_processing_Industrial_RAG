@@ -32,7 +32,7 @@ class SimpleFallbackProcessor:
         return {"content_types": ["text"], "file_types": ["pdf", "text", "document"]}
 
     def process(
-        self, file_path: str, page_indices: Optional[List[int]] = None
+        self, file_path: str, page_indices: Optional[List[int]] = None, progress_callback = None
     ) -> Dict[str, Any]:
         """Process a document file with basic text extraction.
 
@@ -52,10 +52,13 @@ class SimpleFallbackProcessor:
 
         # Handle different file types
         file_extension = file_path.suffix.lower()
+        
+        if progress_callback:
+            progress_callback("processing_start")
 
         try:
             if file_extension == ".pdf":
-                results = self._process_pdf(file_path, page_indices)
+                results = self._process_pdf(file_path, page_indices, progress_callback)
             elif file_extension in [".txt", ".md", ".rst"]:
                 results = self._process_text_file(file_path)
             elif file_extension in [".docx", ".doc"]:
@@ -80,7 +83,7 @@ class SimpleFallbackProcessor:
         return results
 
     def _process_pdf(
-        self, pdf_path: Path, page_indices: Optional[List[int]] = None
+        self, pdf_path: Path, page_indices: Optional[List[int]] = None, progress_callback = None
     ) -> Dict[str, Any]:
         """Process a PDF file with basic text extraction.
 
@@ -105,7 +108,10 @@ class SimpleFallbackProcessor:
                 pages_to_process = range(len(doc))
 
             results = {}
-            for page_idx in pages_to_process:
+            total_pages = len(pages_to_process)
+            for i, page_idx in enumerate(pages_to_process):
+                if progress_callback:
+                    progress_callback("processing_page", i+1, total_pages)
                 try:
                     page = doc[page_idx]
                     page_num = page_idx + 1  # Convert to 1-based

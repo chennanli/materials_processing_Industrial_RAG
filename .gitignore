@@ -1,7 +1,7 @@
 
-# Environment variables
-.env
-*.env
+# ===================================
+# Document Processing System - .gitignore
+# ===================================
 
 # Python
 __pycache__/
@@ -31,106 +31,66 @@ env/
 .venv/
 docling_OCR/
 
-# Project specific
-# Ignore Python cache and logs
-__pycache__/
-*.pyc
+# Environment variables
+.env
+.env.*
+
+# ===================================
+# Project-specific ignores
+# ===================================
+
+# Logs
 *.log
+docling_*.log
+logs/
 
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
+# Uploads folder contents (keep folder structure)
 uploads/*
 !uploads/.gitkeep
+!uploads/README.md
 
-# Ignore output folders
+# Output folders (generated content)
 output/
 output_from_cloud/
 
-# Ignore archived and backup files
+# Archived and backup files
 archieved/
+backup_files/
+*_backup/
+*.backup
 
-# Ignore Gemini API key (adjust filename if needed)
+# Test files (temporary)
+test_*.py
+*_test.py
+simple_test.py
+debug_*.py
+
+# API keys and secrets
 gemini_api_key.txt
+*_api_key.txt
+secrets.json
 
-# Other common ignores
-.DS_Store
+# ===================================
+# Document and media files
+# ===================================
 
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-
-__pycache__/
-*.pyc
-*.log
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Archived and development files
-archieved/
-future_use_pdf/
-suggestions.md
-dialog.md
-modularization_plan.md
-
-# PDF and document files (except examples)
+# PDF files (except examples)
 *.pdf
 !examples/*.pdf
+!docs/*.pdf
 
-# Large data files
+# Image files
 *.png
 *.jpg
 *.jpeg
 *.tiff
 *.bmp
+*.gif
+*.svg
+
+# ===================================
+# Development and IDE
+# ===================================
 
 # IDE specific
 .idea/
@@ -139,108 +99,31 @@ modularization_plan.md
 *.swo
 *~
 
-# Logs
-*.log
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-
-*.log
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-.*
-!example.log
-logs/
-*.log
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-.*
-!example.log.*
-docling_*.log
-
-# Ignore environment files
-.env
-.env.*
-
-# Ignore uploads folder contents but keep the folder
-uploads/*
-!uploads/.gitkeep
-
-# Ignore output folders
-output/
-output_from_cloud/
-
-# Ignore archived and backup files
-archieved/
-
-# Ignore Gemini API key (adjust filename if needed)
-gemini_api_key.txt
-
-# Other common ignores
-.DS_Store
-
-!docling_example.log
-
-# Local development
-.DS_Store
+# Jupyter Notebooks
 .ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===================================
+# Temporary and cache files
+# ===================================
 
 # Temporary files
 tmp*/
 *.tmp
+*.temp
+
+# Cache directories
+.cache/
+.pytest_cache/
+
+# Documentation builds
+docs/_build/

@@ -57,6 +57,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload size
 def processor_name_filter(processor):
     """Format processor names for display."""
     name_mapping = {
+        "smart": "Smart (Recommended)",
         "lmstudio": "LMStudio",
         "docling": "Docling",
         "camelot": "Camelot",
@@ -82,7 +83,7 @@ def allowed_file(filename):
 
 def get_processor_list():
     """Get list of available processors."""
-    return ["docling", "gemini", "lmstudio", "camelot"]
+    return ["smart", "docling", "gemini", "lmstudio", "camelot"]
 
 
 def get_recent_documents():
@@ -240,20 +241,62 @@ def process_document_task(task_id, file_path, processors, page_indices):
         # Update task status
         processing_tasks[task_id] = {
             "status": "processing",
-            "progress": 10,
+            "progress": 5,
             "message": "Starting document processing",
         }
 
         # Initialize processor
         doc_processor = DocumentProcessor(enabled_processors=processors)
-
+        
         # Update status
-        processing_tasks[task_id]["progress"] = 20
+        processing_tasks[task_id]["progress"] = 10
         processing_tasks[task_id]["message"] = "Analyzing document"
+        
+        # First determine page count (to calculate progress)
+        import fitz
+        total_pages = 0
+        try:
+            doc = fitz.open(file_path)
+            total_pages = len(doc)
+            doc.close()
+        except Exception as e:
+            logger.error(f"Error determining page count: {e}")
+            total_pages = 10  # Default fallback
+            
+        # Create a callback for progress updates
+        def progress_callback(stage, current_page=None, total=None):
+            if stage == "analyzing":
+                processing_tasks[task_id]["progress"] = 15
+                processing_tasks[task_id]["message"] = "Analyzing document content"
+            elif stage == "selecting_processors":
+                processing_tasks[task_id]["progress"] = 20
+                processing_tasks[task_id]["message"] = "Selecting processors"
+            elif stage == "processing_start":
+                processing_tasks[task_id]["progress"] = 25
+                processing_tasks[task_id]["message"] = "Starting document processing"
+            elif stage == "processing_page" and current_page is not None and total is not None:
+                # Calculate progress between 25% and 90% based on page processing
+                page_progress = 65 * (current_page / total)
+                processing_tasks[task_id]["progress"] = 25 + page_progress
+                processing_tasks[task_id]["message"] = f"Processing page {current_page} of {total}"
+            elif stage == "combining_results":
+                processing_tasks[task_id]["progress"] = 90
+                processing_tasks[task_id]["message"] = "Combining results"
+            elif stage == "saving_results":
+                processing_tasks[task_id]["progress"] = 95
+                processing_tasks[task_id]["message"] = "Saving results"
 
-        # Process document
+        # Process document with progress callback
+        # Note: We'll need to modify document_processor.py to accept and use this callback
+        # For now, we'll just call the regular method and update progress manually
+        
+        # Update to analyzing stage
+        progress_callback("analyzing")
+        
+        # Call process_document with the progress callback
         doc_processor.process_document(
-            file_path=file_path, page_indices=page_indices, output_dir=OUTPUT_DIR
+            file_path=file_path, page_indices=page_indices, output_dir=OUTPUT_DIR,
+            progress_callback=progress_callback
         )
 
         # Update status

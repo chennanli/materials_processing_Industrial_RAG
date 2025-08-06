@@ -38,7 +38,7 @@ class DoclingProcessor:
         self.converter = DocumentConverter()
 
     def process(
-        self, file_path: str, page_indices: Optional[List[int]] = None
+        self, file_path: str, page_indices: Optional[List[int]] = None, progress_callback = None
     ) -> Dict[str, Any]:
         """Process a document file with Docling.
 
@@ -60,6 +60,9 @@ class DoclingProcessor:
         try:
             # Convert the document using Docling
             logger.info(f"Processing {file_path} with Docling")
+            
+            if progress_callback:
+                progress_callback("processing_page", 1, 3) # Phase 1: Initial conversion
 
             # If page indices are specified and it's a PDF, extract those pages first
             if page_indices and file_extension == ".pdf":
@@ -71,10 +74,16 @@ class DoclingProcessor:
                 result = self.converter.convert(str(file_path))
 
             # Extract document content
+            if progress_callback:
+                progress_callback("processing_page", 2, 3) # Phase 2: Extracting document content
+                
             doc = result.document
 
             # Process document structure
-            return self._process_document(doc)
+            if progress_callback:
+                progress_callback("processing_page", 3, 3) # Phase 3: Processing document structure
+                
+            return self._process_document(doc, progress_callback)
 
         except Exception as e:
             logger.error(f"Error processing document with Docling: {e}")
@@ -116,7 +125,7 @@ class DoclingProcessor:
 
         return temp.name
 
-    def _process_document(self, doc: DoclingDocument) -> Dict[str, Any]:
+    def _process_document(self, doc: DoclingDocument, progress_callback = None) -> Dict[str, Any]:
         """Process a Docling Document object.
 
         Args:
@@ -128,7 +137,10 @@ class DoclingProcessor:
         results = {}
 
         # Process each page - doc.pages is a dictionary with page numbers as keys
-        for page_num, page_item in doc.pages.items():
+        total_pages = len(doc.pages)
+        for i, (page_num, page_item) in enumerate(doc.pages.items()):
+            if progress_callback:
+                progress_callback("processing_page", i+1, total_pages)
             # Extract text content from document-level items
             text_blocks = []
             page_texts = []

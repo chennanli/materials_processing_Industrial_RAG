@@ -165,6 +165,13 @@ except ImportError:
     logger.warning("LMStudio processor not available")
     LMStudioProcessor = None
 
+# Import smart processor
+try:
+    from processors.smart_processor import SmartDocumentProcessor
+except ImportError:
+    logger.warning("Smart processor not available")
+    SmartDocumentProcessor = None
+
 # Import fallback processor
 
 
@@ -176,7 +183,7 @@ class DocumentProcessor:
 
         Args:
             enabled_processors: List of processor names to enable
-                              ('docling', 'camelot', 'gemini', 'lmstudio', or 'all')
+                              ('docling', 'camelot', 'gemini', 'lmstudio', 'smart', or 'all')
         """
         self.processors = {}
         self.analyzer = None
@@ -185,6 +192,13 @@ class DocumentProcessor:
         if enabled_processors is None or "all" in enabled_processors:
             self._init_all_processors()
         else:
+            # Initialize smart processor if requested (it's the recommended option)
+            if "smart" in enabled_processors and SmartDocumentProcessor is not None:
+                self.processors["smart"] = SmartDocumentProcessor()
+                logger.info("Initialized Smart processor (recommended)")
+                # Smart processor handles everything internally
+                return
+            
             # Always initialize Docling as the analyzer if available
             if DoclingProcessor is not None:
                 self.analyzer = DoclingProcessor()
@@ -204,6 +218,14 @@ class DocumentProcessor:
 
     def _init_all_processors(self):
         """Initialize all available processors."""
+        # Try smart processor first (it's the recommended option)
+        if SmartDocumentProcessor is not None:
+            try:
+                self.processors["smart"] = SmartDocumentProcessor()
+                logger.info("Initialized Smart processor (recommended)")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Smart processor: {e}")
+        
         # Always initialize Docling as the analyzer if available
         if DoclingProcessor is not None:
             try:
@@ -408,6 +430,7 @@ class DocumentProcessor:
         file_path: str,
         page_indices: Optional[List[int]] = None,
         output_dir: str = None,
+        progress_callback = None,
     ) -> Dict[str, Any]:
         """Process document with enabled processors.
 
@@ -432,9 +455,13 @@ class DocumentProcessor:
 
         # Analyze document
         logger.info(f"Analyzing document: {file_path}")
+        if progress_callback:
+            progress_callback("analyzing")
         document_analysis = self.analyze_document(str(file_path))
 
         # Select processors based on analysis
+        if progress_callback:
+            progress_callback("selecting_processors")
         processor_mapping = self.select_processors_for_document(document_analysis)
 
         # Log selected processors
@@ -444,6 +471,8 @@ class DocumentProcessor:
             )
 
         # Process with selected processors
+        if progress_callback:
+            progress_callback("processing_start")
         processor_results = {}
 
         # If we have no processors selected for any content type, use all available processors
@@ -455,7 +484,7 @@ class DocumentProcessor:
                 logger.info(f"Processing with {processor_name}")
                 try:
                     # Process the document
-                    results = processor.process(str(file_path), page_indices)
+                    results = processor.process(str(file_path), page_indices, progress_callback)
 
                     # Save results with improved organization
                     save_processor_results(processor, results, output_dir, base_name)
@@ -479,7 +508,7 @@ class DocumentProcessor:
                 logger.info(f"Processing with {processor_name}")
                 try:
                     # Process the document
-                    results = processor.process(str(file_path), page_indices)
+                    results = processor.process(str(file_path), page_indices, progress_callback)
 
                     # Save results with improved organization
                     save_processor_results(processor, results, output_dir, base_name)
@@ -490,11 +519,25 @@ class DocumentProcessor:
                     logger.info(f"Completed processing with {processor_name}")
                 except Exception as e:
                     logger.error(f"Error processing with {processor_name}: {e}")
+                    # Try to get partial results if available
+                    try:
+                        if hasattr(processor, '_get_partial_results'):
+                            partial_results = processor._get_partial_results()
+                            if partial_results:
+                                logger.info(f"Recovered partial results from {processor_name}: {len(partial_results)} pages")
+                                save_processor_results(processor, partial_results, output_dir, base_name)
+                                processor_results[processor_name] = partial_results
+                    except Exception as partial_e:
+                        logger.warning(f"Could not recover partial results from {processor_name}: {partial_e}")
 
         # Combine results from all processors
+        if progress_callback:
+            progress_callback("combining_results")
         combined_results = self._combine_results(processor_results, processor_mapping)
 
         # Save combined results
+        if progress_callback:
+            progress_callback("saving_results")
         self._save_combined_results(combined_results, str(output_dir), base_name)
 
         return {

@@ -46,7 +46,7 @@ class GeminiProcessor:
             raise ValueError("GEMINI_API_KEY not found in config.py")
 
     def process(
-        self, pdf_path: str, page_indices: Optional[List[int]] = None
+        self, pdf_path: str, page_indices: Optional[List[int]] = None, progress_callback = None
     ) -> Dict[str, Any]:
         """Process a PDF file with Gemini Vision API.
 
@@ -66,17 +66,74 @@ class GeminiProcessor:
 
         # Process each page
         results = {}
-        for page_num, image in page_images:
-            logger.info(f"Processing page {page_num} with Gemini")
+        total_pages = len(page_images)
+        for i, (page_num, image) in enumerate(page_images):
+            logger.info(f"Processing page {page_num} with Gemini ({i+1}/{total_pages})")
+            if progress_callback:
+                progress_callback("processing_page", i+1, total_pages)
 
-            # Process with Gemini
-            prompt = f"Extract all text content from this image. Format tables properly. This is page {page_num} of a PDF document."
+            # Process with Gemini using optimized prompt
+            prompt = self._get_optimized_gemini_prompt(page_num)
             text_content = self._process_image_with_gemini(image, prompt)
 
             # Store results
             results[str(page_num)] = {"page_number": page_num, "content": text_content}
 
         return results
+
+    def _get_optimized_gemini_prompt(self, page_num: int) -> str:
+        """Get optimized prompt for Gemini Vision API.
+
+        Args:
+            page_num: Page number being processed
+
+        Returns:
+            Optimized prompt for Gemini
+        """
+        return f"""You are an expert document analyst with advanced vision capabilities. Analyze this document image (page {page_num}) comprehensively using Google's state-of-the-art vision understanding.
+
+**Primary Task: Complete Document Analysis**
+- Extract ALL text content with perfect accuracy
+- Preserve exact formatting, spacing, and document structure
+- Maintain reading order and hierarchy
+
+**Advanced Capabilities:**
+- Convert tables to well-formatted markdown with proper alignment
+- Identify and describe charts, graphs, diagrams, and visual elements
+- Recognize document structure (headers, sections, footnotes, captions)
+- Preserve mathematical formulas, equations, and special notation
+- Identify stamps, signatures, handwritten annotations, or markings
+- Note color coding, highlighting, or visual emphasis
+- Describe images, logos, and graphical elements
+
+**Visual Understanding:**
+- Analyze document layout and design elements
+- Identify relationships between text and visual components
+- Recognize document type and purpose from visual cues
+- Extract visible metadata (dates, page numbers, watermarks)
+- Note any quality issues or scanning artifacts
+
+**Output Format:**
+```markdown
+# Page {page_num} Analysis
+
+## Text Content
+[Complete text extraction in reading order with preserved formatting]
+
+## Tables
+[All tables converted to clean markdown format]
+
+## Visual Elements
+[Detailed descriptions of charts, graphs, images, diagrams]
+
+## Document Structure
+[Headers, sections, layout observations, formatting notes]
+
+## Additional Observations
+[Any other relevant details, quality notes, or special elements]
+```
+
+Leverage Google Gemini's advanced multimodal understanding to provide the most comprehensive and accurate document analysis possible. Focus on both precision in text extraction and rich understanding of visual elements."""
 
     def _extract_pages_to_images(
         self, pdf_path: str, page_indices: Optional[List[int]] = None, dpi: int = 300

@@ -56,7 +56,7 @@ Then open your browser to http://127.0.0.1:5000/
 - **Document Upload**: Upload documents through a drag-and-drop interface
 - **Processor Selection**: Choose which processors to use for each document
 - **Page Selection**: Specify which pages to process
-- **Processing Status**: Real-time status updates during processing
+- **Processing Status**: Real-time granular status updates during processing (5% to 100%)
 - **Result Viewing**: View results from each processor
 - **Result Comparison**: Compare outputs from different processors
   - Side-by-side view
@@ -122,9 +122,10 @@ For detailed architecture information, see `architecture_consolidated.md`.
 - **Multiple Processing Engines** (Parallel Processing):
   - **Docling**: Document structure analysis, layout understanding, text extraction
   - **Gemini**: Fast cloud-based OCR, vision understanding, image processing
-  - **LMStudio**: Private local OCR with custom models (internvl3-14b-instruct)
+  - **LMStudio**: Private local OCR with custom models (supports OCRFlux, MonkeyOCR, InternVL, Qwen-VL, etc.)
   - **Camelot**: Specialized table extraction from PDFs
   - **Fallback**: Basic text extraction when other processors fail
+  - **Smart**: Intelligent processor that routes pages to specialized processors
 
 - **Smart Processing Architecture**:
   - **Parallel Execution**: All selected processors run simultaneously (not sequentially)
@@ -187,6 +188,11 @@ For detailed architecture information, see `architecture_consolidated.md`.
      ```bash
      export GEMINI_API_KEY='your-api-key-here'
      ```
+
+   **LM Studio Model Recommendations**:
+   - **OCR-specialized models**: MonkeyOCR, OCRFlux (best for text extraction)
+   - **Vision-language models**: InternVL, Qwen-VL, LLaVA (good for mixed content)
+   - The system automatically detects vision-capable models and optimizes prompts
 
 3. **Docling** (Local, Optional):
    - Installed automatically with requirements.txt
@@ -423,9 +429,77 @@ python process_pdf_example.py path/to/your/document.pdf --output ./custom_output
 3. Update `document_processing/config.py` to include default settings for your backend
 4. Add your backend to the `__init__.py` files as needed
 
-## Future Development
+## LMStudio Processing Flow
 
-See `modularization_plan.md` for planned improvements to the codebase structure.
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          LMStudio Processor                                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌───────────────┐     ┌───────────────┐      ┌────────────────────────┐    │
+│  │ Extract Pages │     │ Detect Current│      │ Select Best Available  │    │
+│  │ as Images     │────▶│ Model Type    │─────▶│ Model                  │    │
+│  │               │     │               │      │                        │    │
+│  └───────────────┘     └───────────────┘      └────────────────────────┘    │
+│          │                                                │                  │
+│          └────────────────────┬───────────────────────────┘                  │
+│                               │                                              │
+│                               ▼                                              │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                      Model-Specific Processing                         │  │
+│  ├───────────────┬───────────────────┬─────────────────┬─────────────────┤  │
+│  │ OCRFlux       │ MonkeyOCR         │ InternVL        │ Qwen-VL         │  │
+│  │ Processor     │ Processor         │ Processor       │ Processor       │  │
+│  └───────────────┴───────────────────┴─────────────────┴─────────────────┘  │
+│                               │                                              │
+│                               ▼                                              │
+│  ┌────────────────────────────────────────────────┐                         │
+│  │ Specialized Chemical Table Prompt Generation    │                         │
+│  │ * Table-specific prompts with column details    │                         │
+│  │ * Decimal precision requirements                │                         │
+│  │ * Chemical formula preservation                 │                         │
+│  └────────────────────────────────────────────────┘                         │
+│                               │                                              │
+│                               ▼                                              │
+│  ┌────────────────────────────────────────────────┐                         │
+│  │ Process Image with LMStudio API                │                         │
+│  │ * Send image with specialized prompt           │                         │
+│  │ * Use model-specific system message            │                         │
+│  │ * Set low temperature (0.1)                    │                         │
+│  └────────────────────────────────────────────────┘                         │
+│                               │                                              │
+│                               ▼                                              │
+│  ┌────────────────────────────────────────────────┐                         │
+│  │ Post-Processing & Formatting Fixes             │                         │
+│  │ * Fix 'x6' patterns to decimal values          │                         │
+│  │ * Correct chemical formulas                    │                         │
+│  │ * Fix missing decimal points                   │                         │
+│  │ * Clean up formatting                          │                         │
+│  └────────────────────────────────────────────────┘                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## Progress Tracking System
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      Progress Tracking Flow                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Start (0%) → Initial Setup (5%) → Document Analysis (10-15%)           │
+│                                                                         │
+│  → Processor Selection (20%) → Processing Start (25%)                   │
+│                                                                         │
+│  → Page Processing (25-90%, based on page count)                        │
+│    [Each page updates progress: current_page/total_pages * 65% + 25%]   │
+│                                                                         │
+│  → Combining Results (90%) → Saving Results (95%) → Complete (100%)     │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Future Development
 
 Future enhancements may include:
 
@@ -434,6 +508,7 @@ Future enhancements may include:
 3. **Batch Processing**: Processing multiple documents at once
 4. **Advanced Visualization**: Better visualization for tables and images
 5. **API Endpoints**: RESTful API for programmatic access
+6. **Further LMStudio Model Optimization**: Additional specialized prompts for different document types
 
 ## License
 

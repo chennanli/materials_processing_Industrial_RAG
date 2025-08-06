@@ -29,7 +29,7 @@
                         <div class="form-check processor-option" style="display: none;">
                             <input class="form-check-input" type="checkbox" value="{{ processor }}" id="{{ processor }}-processor" name="processors">
                             <label class="form-check-label" for="{{ processor }}-processor">
-                                {{ processor|capitalize }}
+                                {{ processor|processor_name }}
                             </label>
                         </div>
                         {% endfor %}
